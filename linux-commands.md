@@ -75,10 +75,6 @@ echo $'source ~/.bash_aliases\nsource ~/.bash_prompt' > ~/.bash_profile
 
 this overrides the existing `.bash_profile` with 2 lines that run `.bash_prompt` and `.bash_aliases`
 
-```bash
-echo $'source ~/.bash_aliases\nsource ~/.bash_prompt' > ~/.bash_profile
-```
-
 ## Drives and Storage
 
 ## lsblk - List Block
