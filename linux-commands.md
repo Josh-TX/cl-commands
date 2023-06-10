@@ -181,4 +181,48 @@ crontab -e
 
 edits the crontab for the current user. Comment at the bottom shows the syntax
 
-## PS
+## Users
+
+I have aliases `u` and `g` for listing nonsystem users and groups
+
+```bash
+getent passwd
+```
+lists all users, but most will be system users. Alternative: `cat /etc/passwd`
+format is username:password(x):userId:PrimaryGroupId:UserComment:HomeDirectory:DefaultShell
+
+```bash
+getent passwd | tr ":" " " | awk "\$3 >= 1000 { print \$1 \"\t\" \$4 }" | sort | uniq
+```
+lists usernames with an id >= 1000, excluding most system users
+
+```bash
+getent group
+```
+lists groups, and for each group lists users in the group. Alternative: `cat /etc/passwd`
+format is groupName:password(x):userId:PrimaryGroupId:UserComment:HomeDirectory:DefaultShell
+
+```bash
+getent group | tr ":" " " | awk "\$3 >= 1000 { print \$1 \"\t\" \$4 }"
+```
+lists non-system groups (id >= 1000)
+
+```bash
+useradd -s /bin/bash -m  myUser
+```
+creates a new user named myUser. `-m` adds a home directory, and the -s sets the user's shell to bash.
+
+```bash
+usermod -a -G myGroup myUser
+```
+adds myUser to myGroup. `sudo` is a group, so this syntax can add the user to that group too
+
+```bash
+passwd myUser
+```
+updates the password for myUser. Just `passwd` updates the password for the current user
+
+```bash
+groups myUser
+```
+lists the groups that myUser is in. Just `groups` lists the groups that the current user is in
