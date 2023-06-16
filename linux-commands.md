@@ -97,11 +97,13 @@ shows details of the storage devices and partitions
 sudo fdisk /dev/sda
 ```
 
-starts an interactive command line for creating partitions on the storage device sda
+starts an interactive command line for creating or deleting partitions on the storage device sda
 You can then enter the following commands
 * `m` - help
-* `g` - create a GPT disk label (often needed before you parition)
+* `p` - list partitions
+* `g` - create a GPT disk label (often needed before you partition)
 * `n` - create new parition. You can use default for further prompts, and tyoe yes to remove signature
+* `d` - delete partition (if there's multiple it'll ask for a number)
 * `w` - write. This is basically the save changes command 
 
 ### mkfs - make filesystem
@@ -145,6 +147,14 @@ hdparm
 ## Misc
 
 may recategorize later
+
+### symlinks
+
+```bash
+ln -s /target/path myFile
+```
+creates a symlink named myFile that references /target/path
+
 
 ### scp
 
@@ -199,7 +209,9 @@ lists usernames with an id >= 1000, excluding most system users
 ```bash
 getent group
 ```
+
 lists groups, and for each group lists users in the group. Alternative: `cat /etc/passwd`
+
 format is groupName:password(x):userId:PrimaryGroupId:UserComment:HomeDirectory:DefaultShell
 
 ```bash
@@ -208,21 +220,146 @@ getent group | tr ":" " " | awk "\$3 >= 1000 { print \$1 \"\t\" \$4 }"
 lists non-system groups (id >= 1000)
 
 ```bash
-useradd -s /bin/bash -m  myUser
+sudo useradd -m -s /bin/bash myUser
 ```
-creates a new user named myUser. `-m` adds a home directory, and the -s sets the user's shell to bash.
+creates a new user named myUser. `-m` adds a home directory, and the -s sets the user's shell to bash. You can use `useradd -M -s /bin/false myUser` to have no home directory and no shell (can't login).
 
 ```bash
-usermod -a -G myGroup myUser
+sudo userdel -rfRZ myUser
 ```
-adds myUser to myGroup. `sudo` is a group, so this syntax can add the user to that group too
+deletes a user. `-r` deletes the home directory, `-RZ` are for more cleanup. Don't worry about the mail spool
 
 ```bash
-passwd myUser
+sudo groupadd myGroup
 ```
-updates the password for myUser. Just `passwd` updates the password for the current user
+creates new group myGroup
+
+```bash
+sudo usermod -a -G myGroup myUser
+```
+adds myUser to myGroup. `sudo` is a group, so this syntax can add the user to that group too. Also `sudo usermod -g myGroup myUser` to update the primary group
+
+```bash
+sudo gpasswd --delete myUser myGroup
+```
+removes myUser from myGroup. You can also use `usermod -G "" myUser` to remove myUser from all secondary groups
+
+
+```bash
+sudo passwd myUser
+```
+
+updates the password for myUser. Just `passwd` updates the password for the current user (careful with sudo)
 
 ```bash
 groups myUser
 ```
 lists the groups that myUser is in. Just `groups` lists the groups that the current user is in
+
+## Permissions
+
+```bash
+sudo chmod -R ug+rwX,o+rX,o-w path
+```
+recursively modifies permissions for the `path` directory and all its contents. The capital `X` means to only add executable to directories, not files 
+
+```bash
+sudo chown -R myUser:myGroup path
+```
+recursively sets the owner and/or group for the `path` directory and all its contents. Use `myUser` to just set the owner, or `:myGroup` to just set the group. There's also `chgrp -R myGroup path` which might be more appropriate. You can end the path with `/*` and it'll recursively affect all files but not the parent directory
+
+## Samba Server
+
+These commands require `samba installed. samba users (smbpasswd) are different from linux users (passwd), but samba users are always tied to a linux user.
+
+```bash
+sudo pdbedit -L
+```
+lists samba users
+
+```bash
+sudo smbpasswd -a myUser
+```
+creates a samba user named myUser. This will fail if myUser isn't already a linux user (passwd)
+
+```bash
+sudo smbpasswd -x myUser
+```
+deletes a samba user named myUser
+
+```bash
+sudo smbstatus
+```
+
+lists active samba connections.
+
+```
+[global]
+server string = my file server
+workgroup = my workgroup
+server role = standalone server
+security = user
+map to guest = Bad User
+name resolve order = bcast host
+unix password sync = yes
+passwd program = /usr/bin/passwd %u
+passwd chat = "*New Password:*" %n\n "*Reenter New Password:*" %n\n "*Password changed.*"
+pam password change = yes
+
+# these settings are often not in global, but they seem like good defaults
+browsable = yes
+create mask = 0664
+force create mode = 0664
+directory mask = 0775
+force directory mode = 0775
+
+# includes
+
+include = /etc/samba/share.conf
+#include = /etc/cockpit/zfs/shares.conf
+```
+This is the global config located in `/etc/samba/smb.conf`. I commented out cockpit's zfs shares, since I want to handle that myself. The remaining shares are defined in share.conf
+
+Below are example shares that could either be at the end of smb.conf or referenced in an `include`
+
+```
+[FolderName]
+guest ok = yes
+path = /main/Media
+force user = myUser
+read only = yes
+```
+This share does not require the client's credentials, and instead all connections use myUser's permissions. Note that myUser does not have to be a samba user, just a linux user.
+
+```
+[FolderName]
+path = /path/to/files
+read only = no
+valid users = @group
+create mask = 0644
+force create mode = 0644
+directory mask = 0755
+force directory mode = 0755
+```
+This share doesn't have `force user`, meaning the client must provide credentials. This also overrides the global mask so that created files will not have group write permission
+
+## Samba client
+
+These commands require `cifs-utils` installed.
+
+```bash
+sudo mount -t cifs -o username=myUser,password=myPass //192.168.0.0/myShare /mnt/myShare
+```
+this mounts the samba share
+
+```
+//192.168.20.25/Media   /mnt/media      cifs    password=,nofail,x-systemd-timeout=5s   0       0
+```
+here's my fstab config that finally worked
+
+## Find
+
+```bash
+find . -name myFileName
+```
+searches the current director and subdirectories for myFileName. 
