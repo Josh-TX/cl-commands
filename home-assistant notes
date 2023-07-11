@@ -1,0 +1,23 @@
+## Dummy Action for Debugging
+> System Log: Write
+This will write to `home-assistant.log`. You can open a shell in the container and run `tail -f home-assistant.log` from the /config directory
+
+This is useful for testing that the trigger+conditions worked. Make sure the action's log level is "warning" or higher.
+
+
+## getting attributes
+```
+state_attr('climate.upstairs', 'current_temperature' }}
+```
+
+## Condition Last Triggered
+
+
+```
+{{ as_timestamp(now()) - as_timestamp(states.automation.my_automation.attributes.last_triggered) | int > 5 }}
+```
+
+```
+{{ ( as_timestamp(now()) - as_timestamp(this.attributes.last_triggered) ) > 5 }}
+```
+but this sometimes works

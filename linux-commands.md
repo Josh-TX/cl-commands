@@ -58,13 +58,13 @@ upon ssh login, it'll auto-run `~/.bash_profile`. The `bash` command itself will
 Ubuntu server's `~/.bashrc` will execute `~/.bash_aliases` if it exists, so there might be some convention to putting aliases there.
 
 ```bash
-wget -q https://github.com/Josh-TX/cl-commands/raw/main/bash-aliases.sh -O ~/.bash_aliases; source ~/.bash_aliases
+wget -q https://github.com/Josh-TX/cl-commands/raw/main/scripts/bash-aliases.sh -O ~/.bash_aliases; source ~/.bash_aliases
 ```
 
 this loads all my aliases into `~/.bash_aliases` and runs them. All that's left is to ensure `~/.bash_profile` includes `source ~/.bash_aliases`
 
 ```bash
-wget -q https://github.com/Josh-TX/cl-commands/raw/main/bash-prompt.sh -O ~/.bash_prompt; source ~/.bash_prompt
+wget -q https://github.com/Josh-TX/cl-commands/raw/main/scripts/bash-prompt.sh -O ~/.bash_prompt; source ~/.bash_prompt
 ```
 
 this creates a different bash prompt. like above, make sure `~/.bash_profile` includes `source ~/.bash_prompt`
@@ -122,13 +122,27 @@ df -h
 
 shows the space used/available on mounted partitions
 
-### mount
+### mounting drives
 
 ```bash
-sudo mount /dev/sda1 /mnt/disk1/
+sudo mount /dev/sda1 /mnt/myDirectory
 ```
+mounts the partition sda1 to directory /mnt/myDirectory. /mnt/myDirectory is recommended for permanent mounts, whereas /media/myDirectory is recommended for temporary 
 
-mounts the partition sda1 to directory /mnt/disk1. /mnt/dirName is recommended for permanent mounts, whereas /media/dirName is recommended for temporary 
+```bash
+sudo mount -t ntfs -o nls=utf8,umask=0222 /dev/sda1 /mnt/myDirectory
+```
+like above, but mounts a NTFS partition (windows compatible). 
+
+```bash
+sudo mount 192.168.10.10:/path/shared /media/myDirectory
+```
+mounts NFS share. 
+
+```
+/dev/sda1       /mnt/myMountPoint    ext4    defaults,nofail 0       0
+```
+The `/etc/fstab` config for mounting a drive on startup. explace ext4 with the filesystem
 
 ### umount - unmount (but spelled without n)
 
@@ -355,7 +369,23 @@ this mounts the samba share
 ```
 //192.168.20.25/Media   /mnt/media      cifs    password=,nofail,x-systemd-timeout=5s   0       0
 ```
-here's my fstab config that finally worked
+here's my /etc/fstab config that finally worked
+
+## NFS Server
+From what I can tell, you can't do user permissions with NFS server. At best you can just limit what IP addresses can access it. 
+
+```
+/path/to/share *(rw,no_root_squash,auto,no_subtree_check)
+```
+This is a sample config for `/etc/exports`. Note that the start gives permission to all sources
+
+
+## NFS client
+
+```bash
+sudo mount -t ntfs -o nls=utf8,umask=0222 /dev/sda1 /mnt/myPath
+```
+this mounts an nfs share... not sure what the options do
 
 ## Find
 
@@ -363,3 +393,24 @@ here's my fstab config that finally worked
 find . -name myFileName
 ```
 searches the current director and subdirectories for myFileName. 
+
+## DNS
+
+```bash
+sudo cat /run/systemd/resolve/resolv.conf
+```
+shows the current dns servers. Works in earlier versions of ubuntu
+
+```bash
+resolvectl status
+```
+shows the dns servers. Works in ubuntu 22.04
+
+to edit the current dns server, add/edit `nameserver 192.168.69.69` within the file `/etc/resolv.conf`, then run `systemctl restart systemd-resolved`
+
+## time zones
+
+```bash
+sudo timedatectl set-timezone America/Chicago
+```
+sets the system's timezone to CST
