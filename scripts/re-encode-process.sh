@@ -1,70 +1,80 @@
 #!/bin/bash
 
-#base path of all the other folders
-basePath=/mnt/basePath
+if [ $# -ne 2 ]
+  then
+    echo "must have 2 arguments. Usage: re-encode-process.sh basepath processName"
+    exit 1
+fi
+basePath=$1
+processName=$2
 
-#you can configure these if you want
-inputPath=$basePath/to-process
+inputPath=$basePath/input
 outputPath=$basePath/output
 originalsPath=$basePath/originals
-processingPath=$basePath/processing
+processingPath=$basePath/processing/$processName
 failuresPath=$basePath/failures
 logPath=$basePath/logs
+tempFile="$basePath/processing_$processName.lock"
 
-
-
-
-logFile="$logPath/$(date '+%Y-%m-%d__%I%M%p').txt"
-tempFile="$basePath/processing-filenames.txt"
-
-
-processFile() {
-	fullPath="$1"
-    if [ ! -f $fullPath ]
-    then 
-        echo NOT FOUND: "$fullPath" | tee -a "$logFile"
-        return
-    fi
-
-    # filename could have a path portion (if in subdirectory of $inputPath)
-    fileName=${fullPath/"$inputPath/"}
-    
-    mkdir -p "$(dirname "$processingPath/$fileName")"
-    mv "$fullPath" "$processingPath/$fileName"
-
-    outputFile="$outputPath/$fileName"
-    outputFile=${outputFile/.webm/.mp4}
-    outputFile=${outputFile/.avi/.mp4}
-    startTime=$(date +%s)
-    mkdir -p "$(dirname "$outputFile")"
-    ffmpeg -nostdin -i "$processingPath/$fileName" -y -c:v libx264 -crf 23 -preset ultrafast "$outputFile"
-    if [ $? -eq 0 ]
-    then
-        endTime=$(date +%s)
-        echo SUCCESSFULLY created "$outputFile" | tee -a "$logFile"
-        echo \telapsed time: $(($endTime-$startTime)) seconds | tee -a "$logFile"
-        mkdir -p "$(dirname "$originalsPath/$fileName")"
-        mv "$processingPath/$fileName" "$originalsPath/$fileName"
-    else 
-        endTime=$(date +%s)
-        echo FAILURE processing "$outputFile" | tee -a "$logFile"
-        echo \telapsed time: $(($endTime-$startTime)) seconds | tee -a "$logFile"
-        mkdir -p "$(dirname "$failuresPath/$fileName")"
-        mv "$processingPath/$fileName" "$failuresPath/$fileName"
-    fi
-}
-
-if [ -f $tempFile ]
-then 
-    echo SESSION ALREADY ACTIVE: "$tempFile"
+if [ ! -d "$inputPath" ]
+then
+    echo input director not found: "$inputPath"
     exit 1
 fi
 
-find $inputPath -type f \( -iname \*.mp4 -o -iname \*.webm -o -iname \*.avi \) > $tempFile
-cat $tempFile | while read file
-do
-    processFile "$file"
-done
+if [ -f "$tempFile" ]
+then 
+    echo session already active: "$tempFile"
+    exit 0
+fi
+
+# if multiple nodes attempt the same file at once, there might be a race condition, so wait randomly to mitigate this
+sleep $(($RANDOM % 5)).$(($RANDOM % 100))
+# to further mitigate race conditions, we sort the files randomly and grab one
+fullPath=$(find $inputPath -type f \( -iname \*.mp4 -o -iname \*.webm -o -iname \*.avi -o -iname \*.mkv \) | sort -R | head -n 1)
+if [ ! -f "$fullPath" ]
+then 
+    echo no video files found in $inputPath
+    exit 0
+fi
+echo $fullPath > $tempFile
+
+
+logFile="$logPath/$processName.log"
+mkdir -p "$(dirname "$logPath")"
+if [ ! -f "$logfile" ]
+then 
+    touch $logfile
+fi
+
+
+
+fileName=${fullPath/"$inputPath/"} # filename could have a path portion if it's in a subdirectory of $inputPath)
+
+mkdir -p "$(dirname "$processingPath/$fileName")"
+mv "$fullPath" "$processingPath/$fileName"
+
+outputFile="$outputPath/$fileName"
+outputFile=${outputFile/.webm/.mp4}
+outputFile=${outputFile/.avi/.mp4}
+outputFile=${outputFile/.mkv/.mp4}
+startTime=$(date +%s)
+mkdir -p "$(dirname "$outputFile")"
+echo '['$(date '+%Y-%m-%d %I%M.%S%p')']' begin processing  \'"$processingPath/$fileName"\' | tee -a "$logFile"
+ffmpeg -nostdin -i "$processingPath/$fileName" -y -c:v libx264 -crf 23 -movflags faststart -preset veryfast "$outputFile"
+if [ $? -eq 0 ]
+then
+    endTime=$(date +%s)
+    echo '['$(date '+%Y-%m-%d %I%M.%S%p')']' succesfully created \'"$outputFile"\' | tee -a "$logFile"
+    mkdir -p "$(dirname "$originalsPath/$fileName")"
+    mv "$processingPath/$fileName" "$originalsPath/$fileName"
+    echo took $(($endTime-$startTime)) seconds, original size: $(du -h "$originalsPath/$fileName" | cut -f1), encoded size: $(du -h "$outputFile" | cut -f1) | tee -a "$logFile"
+else 
+    endTime=$(date +%s)
+    echo '['$(date '+%Y-%m-%d %I%M.%S%p')']' FAILURE processing \'"$outputFile"\' after $(($endTime-$startTime)) seconds | tee -a "$logFile"
+    mkdir -p "$(dirname "$failuresPath/$fileName")"
+    mv "$processingPath/$fileName" "$failuresPath/$fileName"
+fi
 rm $tempFile
 cd $inputPath
 find . -type d -empty -delete
