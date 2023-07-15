@@ -42,7 +42,7 @@ then
     if [ ! -f "$fullPath" ]
         echo no video files found in $inputPath
         exit 0
-    then
+    fi
 fi
 echo $fullPath > $tempFile
 
