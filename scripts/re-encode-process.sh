@@ -69,7 +69,7 @@ then
     mkdir -p "$(dirname "$originalsPath/$fileName")"
     mv "$processingPath/$fileName" "$originalsPath/$fileName"
     secondCount=$(($endTime-$startTime))
-    if [ $secondCount > 300 ]
+    if [ $secondCount -gt 300 ]
     then
         timeDesc="$(($secondCount / 60)) minutes"
     else
