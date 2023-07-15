@@ -71,9 +71,9 @@ then
     secondCount=$(($endTime-$startTime))
     if [ $secondCount > 300 ]
     then
-        timeDesc=$(($secondCount / 60)) minutes
+        timeDesc="$(($secondCount / 60)) minutes"
     else
-        timeDesc=$(($secondCount)) seconds
+        timeDesc="$(($secondCount)) seconds"
     fi
     echo took $timeDesc, original size: $(du -h "$originalsPath/$fileName" | cut -f1), encoded size: $(du -h "$outputFile" | cut -f1) | tee -a "$logFile"
 else 
