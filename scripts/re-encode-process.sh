@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ $# -ne 2 ]
-  then
+then
     echo "must have 2 arguments. Usage: re-encode-process.sh basepath processName"
     exit 1
 fi
@@ -15,6 +15,7 @@ processingPath=$basePath/processing/$processName
 failuresPath=$basePath/failures
 logPath=$basePath/logs
 tempFile="$basePath/processing_$processName.lock"
+ffmpegOptions='-c:v libx264 -crf 23 -movflags faststart -preset veryfast'
 
 if [ ! -d "$inputPath" ]
 then
@@ -35,7 +36,13 @@ fullPath=$(find $inputPath -type f \( -iname \*.mp4 -o -iname \*.webm -o -iname 
 if [ ! -f "$fullPath" ]
 then 
     echo no video files found in $inputPath
-    exit 0
+    $inputPath=$basePath/input-720
+    ffmpegOptions='-c:v libx264 -crf 30 -vf scale=-1:720 -movflags faststart -preset veryfast'
+    fullPath=$(find $inputPath -type f \( -iname \*.mp4 -o -iname \*.webm -o -iname \*.avi -o -iname \*.mkv \) | sort -R | head -n 1)
+    if [ ! -f "$fullPath" ]
+        echo no video files found in $inputPath
+        exit 0
+    then
 fi
 echo $fullPath > $tempFile
 
@@ -60,8 +67,8 @@ outputFile=${outputFile/.avi/.mp4}
 outputFile=${outputFile/.mkv/.mp4}
 startTime=$(date +%s)
 mkdir -p "$(dirname "$outputFile")"
-echo '['$(date '+%Y-%m-%d %I%M.%S%p')']' begin processing  \'"$fileName"\' | tee -a "$logFile"
-ffmpeg -nostdin -i "$processingPath/$fileName" -y -c:v libx264 -crf 23 -movflags faststart -preset veryfast "$outputFile"
+echo '['$(date '+%Y-%m-%d %I%M.%S%p')']' "started processing "\'"$fileName"\' | tee -a "$logFile"
+ffmpeg -nostdin -i "$processingPath/$fileName" -y $ffmpegOptions "$outputFile"
 if [ $? -eq 0 ]
 then
     endTime=$(date +%s)
