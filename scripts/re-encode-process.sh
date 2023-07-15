@@ -42,9 +42,9 @@ echo $fullPath > $tempFile
 
 logFile="$logPath/$processName.log"
 mkdir -p "$(dirname "$logPath")"
-if [ ! -f "$logfile" ]
+if [ ! -f "$logFile" ]
 then 
-    touch $logfile
+    touch $logFile
 fi
 
 
