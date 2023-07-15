@@ -60,18 +60,25 @@ outputFile=${outputFile/.avi/.mp4}
 outputFile=${outputFile/.mkv/.mp4}
 startTime=$(date +%s)
 mkdir -p "$(dirname "$outputFile")"
-echo '['$(date '+%Y-%m-%d %I%M.%S%p')']' begin processing  \'"$processingPath/$fileName"\' | tee -a "$logFile"
+echo '['$(date '+%Y-%m-%d %I%M.%S%p')']' begin processing  \'"$fileName"\' | tee -a "$logFile"
 ffmpeg -nostdin -i "$processingPath/$fileName" -y -c:v libx264 -crf 23 -movflags faststart -preset veryfast "$outputFile"
 if [ $? -eq 0 ]
 then
     endTime=$(date +%s)
-    echo '['$(date '+%Y-%m-%d %I%M.%S%p')']' succesfully created \'"$outputFile"\' | tee -a "$logFile"
+    echo '['$(date '+%Y-%m-%d %I%M.%S%p')']' succesfully created \'"$fileName"\' | tee -a "$logFile"
     mkdir -p "$(dirname "$originalsPath/$fileName")"
     mv "$processingPath/$fileName" "$originalsPath/$fileName"
-    echo took $(($endTime-$startTime)) seconds, original size: $(du -h "$originalsPath/$fileName" | cut -f1), encoded size: $(du -h "$outputFile" | cut -f1) | tee -a "$logFile"
+    secondCount=$(($endTime-$startTime))
+    if [ $secondCount > 300 ]
+    then
+        timeDesc=$(($secondCount / 60)) minutes
+    else
+        timeDesc=$(($secondCount)) seconds
+    fi
+    echo took $timeDesc, original size: $(du -h "$originalsPath/$fileName" | cut -f1), encoded size: $(du -h "$outputFile" | cut -f1) | tee -a "$logFile"
 else 
     endTime=$(date +%s)
-    echo '['$(date '+%Y-%m-%d %I%M.%S%p')']' FAILURE processing \'"$outputFile"\' after $(($endTime-$startTime)) seconds | tee -a "$logFile"
+    echo '['$(date '+%Y-%m-%d %I%M.%S%p')']' FAILURE processing \'"$fileName"\' after $(($endTime-$startTime)) seconds | tee -a "$logFile"
     mkdir -p "$(dirname "$failuresPath/$fileName")"
     mv "$processingPath/$fileName" "$failuresPath/$fileName"
 fi
