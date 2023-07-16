@@ -9,13 +9,14 @@ basePath=$1
 processName=$2
 
 inputPath=$basePath/input
+input720Path=$basePath/input-720
 outputPath=$basePath/output
 originalsPath=$basePath/originals
 processingPath=$basePath/processing/$processName
 failuresPath=$basePath/failures
 logPath=$basePath/logs
 tempFile="$basePath/processing_$processName.lock"
-ffmpegOptions='-c:v libx264 -crf 23 -movflags faststart -preset veryfast'
+ffmpegOptions='-c:v libx264 -crf 26 -movflags faststart -preset veryfast'
 
 if [ ! -d "$inputPath" ]
 then
@@ -33,19 +34,24 @@ fi
 sleep $(($RANDOM % 5)).$(($RANDOM % 100))
 # to further mitigate race conditions, we sort the files randomly and grab one
 fullPath=$(find $inputPath -type f \( -iname \*.mp4 -o -iname \*.webm -o -iname \*.avi -o -iname \*.mkv \) | sort -R | head -n 1)
+
 if [ ! -f "$fullPath" ]
 then 
     echo no video files found in $inputPath
-    inputPath=$basePath/input-720
+
+    #now try the 720 folder
+    inputPath=$input720Path
     if [ -d "$inputPath" ]
     then
-        ffmpegOptions='-c:v libx264 -crf 28 -vf scale=-1:720 -movflags faststart -preset veryfast'
+        ffmpegOptions='-c:v libx264 -crf 26 -vf scale=-1:720 -movflags faststart -preset veryfast'
         fullPath=$(find $inputPath -type f \( -iname \*.mp4 -o -iname \*.webm -o -iname \*.avi -o -iname \*.mkv \) | sort -R | head -n 1)
         if [ ! -f "$fullPath" ]
         then
             echo no video files found in $inputPath
             exit 0
         fi
+    else
+        exit 0
     fi
 fi
 echo $fullPath > $tempFile
