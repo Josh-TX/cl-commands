@@ -36,7 +36,7 @@ fullPath=$(find $inputPath -type f \( -iname \*.mp4 -o -iname \*.webm -o -iname 
 if [ ! -f "$fullPath" ]
 then 
     echo no video files found in $inputPath
-    $inputPath=$basePath/input-720
+    inputPath=$basePath/input-720
     ffmpegOptions='-c:v libx264 -crf 28 -vf scale=-1:720 -movflags faststart -preset veryfast'
     fullPath=$(find $inputPath -type f \( -iname \*.mp4 -o -iname \*.webm -o -iname \*.avi -o -iname \*.mkv \) | sort -R | head -n 1)
     if [ ! -f "$fullPath" ]
