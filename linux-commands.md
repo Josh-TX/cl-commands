@@ -53,6 +53,13 @@ copies the content of the file (should specify a public key) to the remote serve
 
 upon ssh login, it'll auto-run `~/.bash_profile`. The `bash` command itself will run `~/.bashrc`, but this doesn't happen on ssh login.
 
+```bash
+#wget -qO - 'https://raw.githubusercontent.com/Josh-TX/cl-commands/main/scripts/ubuntu-init.sh' | bash
+wget -qO - 'https://raw.githubusercontent.com/Josh-TX/cl-commands/main/scripts/ubuntu-init.sh' | source
+```
+my script to initialize by bash-prompt and aliases. 
+
+
 ### Aliases and prompt
 
 Ubuntu server's `~/.bashrc` will execute `~/.bash_aliases` if it exists, so there might be some convention to putting aliases there.
