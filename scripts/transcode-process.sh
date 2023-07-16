@@ -16,7 +16,7 @@ processingPath=$basePath/processing/$processName
 failuresPath=$basePath/failures
 logPath=$basePath/logs
 tempFile="$basePath/processing_$processName.lock"
-ffmpegOptions='-c:v libx264 -crf 26 -movflags faststart -preset veryfast'
+ffmpegOptions='-c:v libx264 -crf 23 -movflags faststart -preset veryfast'
 
 if [ ! -d "$inputPath" ]
 then
